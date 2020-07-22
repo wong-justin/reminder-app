@@ -1,4 +1,4 @@
-# myapp
+# reminder-app
 
 Task reminder app, made with Flutter.
 
@@ -11,7 +11,7 @@ whether to build good habits or work on chores.
 No cluttering your master calendar with many mundane tasks.
 No internet connection needed.
 
-Simple _upcoming_ features:
+Features (_soon to be implemented_):
 - recurring tasks
 - notifications on tasks due
 - to-do items without due date

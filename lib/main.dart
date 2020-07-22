@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:english_words/english_words.dart';
-import 'package:intl/intl.dart';
+import 'todo.dart';
 
 void main() => runApp(MyApp());
 
@@ -30,9 +29,9 @@ class RandomWords extends StatefulWidget {
 
 class _RandomWordsState extends State<RandomWords> {
             
-    final _list1 = initSampleTodoItems();
-    final _list2 = initSampleTodoItems();
-    final _list3 = initSampleTodoItems();
+    final _list1 = initSampleTodos();
+    final _list2 = initSampleTodos();
+    final _list3 = initSampleTodos();
     
     @override
     Widget build(BuildContext context) {
@@ -93,9 +92,9 @@ class _RandomWordsState extends State<RandomWords> {
                 builder: (BuildContext context) {
                     
                     final tiles = (_list1 + _list2 + _list3).map(
-                        (TodoItem li) {
+                        (TodoData li) {
                             return ListTile(
-                                title: _liText(li.text),
+                                title: _liText(li.name),
                             );
                         }
                     );
@@ -133,7 +132,7 @@ class _RandomWordsState extends State<RandomWords> {
 
 class Sublist extends StatefulWidget {
     
-    final List<TodoItem> list;
+    final List<TodoData> list;
     
     Sublist({this.list,});
     
@@ -143,13 +142,13 @@ class Sublist extends StatefulWidget {
 
 class _SublistState extends State<Sublist> {
     
-    final _favoritedItems = Set<TodoItem>();
+    final _favoritedItems = Set<TodoData>();
     
     @override
     Widget build(BuildContext context) {
         return Column(
             children: widget.list.map(
-                (TodoItem li) {
+                (TodoData li) {
                     return Padding(
                         padding: EdgeInsets.all(2),
                         child: _buildRow(li),
@@ -159,28 +158,10 @@ class _SublistState extends State<Sublist> {
         );
     }
     
-    Widget _buildRow(TodoItem li) {
+    Widget _buildRow(TodoData li) {
         final alreadySaved = _favoritedItems.contains(li);
         
-        return Container(
-            child: ListTile(
-                title: _liText(li.formattedExpiration()),
-                trailing: Icon(
-                    alreadySaved ? Icons.favorite : Icons.favorite_border,
-                    color: alreadySaved ? Colors.blue : null,
-                ),
-                onTap: () {
-                    setState(() {
-                        if (alreadySaved) {
-                            _favoritedItems.remove(li);
-                        } else {
-                            _favoritedItems.add(li);
-                        }
-                    });
-                }
-            ),
-            color: Colors.grey[800],
-        );
+        return TodoWidget(todoData: li);
     }
     
     Widget _liText(String text) {
@@ -193,28 +174,4 @@ class _SublistState extends State<Sublist> {
         );
     }
     
-}
-
-class TodoItem {
-    
-    static DateFormat dateFormatter = DateFormat('kk:mm:ss \n EEE d MMM');
-    
-    String text;
-    DateTime expiration = DateTime.now();
-    
-    TodoItem({this.text,});
-    
-    String formattedExpiration() {
-        return dateFormatter.format(expiration);
-    }
-}
-
-List<TodoItem> initSampleTodoItems() {
-    return generateWordPairs().take(4).toList().map(
-        (WordPair pair) {
-            return TodoItem(
-                text: pair.asPascalCase,
-            );
-        }
-    ).toList();
 }
