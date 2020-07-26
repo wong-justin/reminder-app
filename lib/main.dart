@@ -1,20 +1,76 @@
 import 'package:flutter/material.dart';
-import 'todo.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:rxdart/subjects.dart';
 
-void main() => runApp(MyApp());
+import 'dart:async';
+
+import 'todo.dart';
+import 'create.dart';
+
+// obj passed whenever handling notification actions
+//  like scheduling, initialization, permissions, etc
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = 
+        FlutterLocalNotificationsPlugin();
+
+void main() async {
+    await initNotificationPlugin();
+    runApp(MyApp());
+}
+
+void initNotificationPlugin() async {
+    
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    final BehaviorSubject<String> selectNotificationSubject = 
+        BehaviorSubject<String>();
+    
+    NotificationAppLaunchDetails notificationAppLaunchDetails =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    
+    var initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');//app_icon');
+    var initSettingsIOS = IOSInitializationSettings(
+        requestAlertPermission: false,
+    );
+        
+    var initSettings = InitializationSettings(
+        initSettingsAndroid,
+        initSettingsIOS
+    );
+        
+    await flutterLocalNotificationsPlugin.initialize(
+        initSettings,
+        onSelectNotification: (String payload) async {
+            if (payload != null) {
+                debugPrint('notification payload: ' + payload);
+            }
+            selectNotificationSubject.add(payload);
+            
+            // listener for when user opens notification:
+//            selectNotificationSubject.stream.listen((String payload) async {
+//                // do something with payload
+//            });
+        }
+    );
+}
 
 class MyApp extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
                 
         return MaterialApp(
-            title: 'Startup Name Generator',
+            title: 'Todo List',
             theme: ThemeData(
                 primaryColor: Colors.grey[600],
                 scaffoldBackgroundColor: Colors.grey[900],
                 floatingActionButtonTheme: FloatingActionButtonThemeData(
                     backgroundColor: Colors.grey[600],
                     foregroundColor: Colors.grey[100],
+                ),
+                textTheme: TextTheme(
+                    body1: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.0,
+                    ),
                 ),
             ),
             home: RandomWords(),
@@ -30,14 +86,14 @@ class RandomWords extends StatefulWidget {
 class _RandomWordsState extends State<RandomWords> {
             
     final _list1 = initSampleTodos();
-    final _list2 = initSampleTodos();
-    final _list3 = initSampleTodos();
+//    final _list2 = initSampleTodos();
+//    final _list3 = initSampleTodos();
     
     @override
     Widget build(BuildContext context) {
         return Scaffold(
             appBar: AppBar(
-                title: Text('Startup Name Generator'),
+                title: Text('Todo List'),
                 actions: [
                     IconButton(icon: Icon(Icons.search),
                                onPressed: _searchFunction),
@@ -51,21 +107,26 @@ class _RandomWordsState extends State<RandomWords> {
                     Sublist(
                         list: _list1,
                     ),
-                    _buildHeader('soon'),
-                    Sublist(
-                        list: _list2,
-                    ),
-                    _buildHeader('sometime'),
-                    Sublist(
-                        list: _list3,
-                    ),
+//                    _buildHeader('soon'),
+//                    Sublist(
+//                        list: _list2,
+//                    ),
+//                    _buildHeader('sometime'),
+//                    Sublist(
+//                        list: _list3,
+//                    ),
                 ],
                 padding: EdgeInsets.only(bottom: 56),   // 40 for mini
             ),                
-            floatingActionButton: FloatingActionButton(
-                onPressed: () => {},
-                tooltip: 'Add',
-                child: Icon(Icons.add),
+            floatingActionButton: InkWell(
+                splashColor: Colors.red,
+                customBorder: new CircleBorder(),
+                onLongPress: () {},
+                child: FloatingActionButton(
+                    onPressed: _pushTodoCreationRoute,
+                    tooltip: 'Add Todo',
+                    child: Icon(Icons.add),
+                ),
             ),
         );
     }
@@ -86,12 +147,18 @@ class _RandomWordsState extends State<RandomWords> {
         );
     }
     
+    void _pushTodoCreationRoute() {
+        var result = Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => MyFormPage()),
+        );
+    }
+    
     void _pushFavorited() {
         Navigator.of(context).push(
             MaterialPageRoute<void>(
                 builder: (BuildContext context) {
                     
-                    final tiles = (_list1 + _list2 + _list3).map(
+                    final tiles = (_list1).map(// + _list2 + _list3).map(
                         (TodoData li) {
                             return ListTile(
                                 title: _liText(li.name),
@@ -106,7 +173,7 @@ class _RandomWordsState extends State<RandomWords> {
                     
                     return Scaffold(
                         appBar: AppBar(
-                            title: Text('Favorited Suggestions'),
+                            title: Text('Settings'),
                         ),
                         body: ListView(children: divided),
                     );
@@ -141,37 +208,18 @@ class Sublist extends StatefulWidget {
 } 
 
 class _SublistState extends State<Sublist> {
-    
-    final _favoritedItems = Set<TodoData>();
-    
+        
     @override
     Widget build(BuildContext context) {
+                
         return Column(
-            children: widget.list.map(
-                (TodoData li) {
-                    return Padding(
-                        padding: EdgeInsets.all(2),
-                        child: _buildRow(li),
-                    );
-                }
-            ).toList()
+            children: ListTile.divideTiles(
+                context: context,
+                tiles: widget.list.map((TodoData td) {
+                    return TodoWidget(td);
+                }),
+                color: Theme.of(context).scaffoldBackgroundColor,
+            ).toList(),
         );
-    }
-    
-    Widget _buildRow(TodoData li) {
-        final alreadySaved = _favoritedItems.contains(li);
-        
-        return TodoWidget(todoData: li);
-    }
-    
-    Widget _liText(String text) {
-        return Text(
-            text,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.0,
-            ),
-        );
-    }
-    
+    }    
 }

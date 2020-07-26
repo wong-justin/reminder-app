@@ -4,9 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 class TimerText extends StatefulWidget {
-    
-    static final int refreshRateMs = 500;
-    
+        
     DateTime expiration;
     
     TimerText({this.expiration,});
@@ -24,22 +22,20 @@ class _TimerTextState extends State<TimerText> {
     Duration _timeRemaining;
     Unit _lastUnit;
     
-    static const TextStyle _textStyle = TextStyle(
-        color: Colors.white,
-        fontSize: 18.0,
-    );
-    
     @override
     void initState() {     
         
         _initialTimeRemaining = widget.expiration.difference(DateTime.now());
         _timeRemaining = _initialTimeRemaining;
+        _lastUnit = UnitAmount.largestUnit(_timeRemaining).units;
+        
+        int startingRefreshRateMs = _refreshRate(_lastUnit);
             
         _stopwatch.start();
         
         _timer = new Timer.periodic(
             new Duration(
-                milliseconds: TimerText.refreshRateMs
+                milliseconds: startingRefreshRateMs
             ),
             _checkStopwatch
         );
@@ -49,15 +45,24 @@ class _TimerTextState extends State<TimerText> {
     Widget build(BuildContext context) {
         return Text(
             _formattedTimeRemaining(),
-            style: _textStyle,
+            style: Theme.of(context).textTheme.body1,
         );
     }
     
     void _checkStopwatch(Timer timer) {
         _timeRemaining = _initialTimeRemaining - _stopwatch.elapsed;
         
+        Unit units = UnitAmount.largestUnit(_timeRemaining).units;
+        
+        if (units != _lastUnit) {
+            int refreshRateMs = _refreshRate(units);
+            _replaceTimer(refreshRateMs);
+            _lastUnit = units;
+        }
+        
         // lower timer frequency for longer remaining times
-//        _timer = new Timer.periodic(
+        
+        //        _timer = new Timer.periodic(
 //            new Duration(
 //                milliseconds: TimerText.refreshRateMs
 //            ),
@@ -67,7 +72,7 @@ class _TimerTextState extends State<TimerText> {
         setState(() {});
     }
     
-    void _newTimerRefreshRate(Unit units) {
+    int _refreshRate(Unit units) {
         int refreshRateMs;
         
         // assuming weeks is the highest in Unit enum
@@ -87,14 +92,20 @@ class _TimerTextState extends State<TimerText> {
             default:
                 refreshRateMs = 1000;
         }
-//        _timer.cancel();
+        return refreshRateMs;
+    }
+    
+    void _replaceTimer(newRefreshRateMs) {
+        
+        _timer.cancel();
         _timer = new Timer.periodic(
-            new Duration(milliseconds: refreshRateMs),
+            new Duration(milliseconds: newRefreshRateMs),
             _checkStopwatch
         );
     }
     
     String _formattedTimeRemaining() {
+//        return _timeRemaining.inSeconds.toString();
         return UnitAmount.largestUnit(_timeRemaining).toString();
     }
 }

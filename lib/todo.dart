@@ -6,46 +6,33 @@ import 'timing.dart';
 class TodoWidget extends StatefulWidget {
     final TodoData todoData;
     
-    TodoWidget({this.todoData,});
+    TodoWidget(this.todoData,);
     
      @override
     _TodoWidgetState createState() => _TodoWidgetState();
 }
 
 class _TodoWidgetState extends State<TodoWidget> {
-    
-    bool _toggle = false;
-    
+        
     @override
     Widget build(BuildContext context) {
         return Container(
             child: ListTile(
-//                title: _liText(widget.todoData.formattedExpiration()),
-                title: TimerText(
-                    expiration: widget.todoData.expiration
+                title: Text(
+                    widget.todoData.name,
+                    style: Theme.of(context).textTheme.body1
                 ),
-                trailing: Icon(
-                    _toggle ? Icons.favorite : Icons.favorite_border,
-                    color: _toggle ? Colors.red : null,
+//                title: _liText(widget.todoData.name),
+                trailing: TimerText(
+                    expiration: widget.todoData.expiration,
                 ),
                 onTap: () {
-                    _toggle = ! _toggle;
-                    setState(() {
-                        
-                    });
-                }
+//                    setState(() {
+//                        
+//                    });
+                },
             ),
             color: Colors.grey[800],
-        );
-    }
-    
-    Widget _liText(String text) {
-        return Text(
-            text,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.0,
-            ),
         );
     }
 }
@@ -53,14 +40,26 @@ class _TodoWidgetState extends State<TodoWidget> {
 class TodoData {
         
     String name;
-    DateTime expiration = DateTime.now().add(
-        new Duration(minutes: 3));
+    String description;
+    DateTime expiration;//DateTime.now()
+    DateTime _created = DateTime.now();
     
-    TodoData({this.name,});    
+    TodoData({name, 
+              description, 
+              expiration,}) {
+        debugPrint('expiration: ' + expiration.toString());
+        this.name = name;
+        this.description = description;
+        this.expiration = expiration != null ?
+            expiration :
+            DateTime.now().add(
+                new Duration(minutes: 60, seconds: 15,));
+            
+    }
 }
 
 List<TodoData> initSampleTodos() {
-    return generateWordPairs().take(4).toList().map(
+    return generateWordPairs().take(2).toList().map(
         (WordPair pair) {
             return TodoData(
                 name: pair.asPascalCase,
