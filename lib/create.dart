@@ -39,9 +39,6 @@ class _MyFormPageState extends State<MyFormPage> {
                             _timePicker,
                         ]
                     ),
-//                    _datePicker, 
-//                    _timePicker,
-                    Text('b'),
                     Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[RaisedButton(
@@ -71,15 +68,18 @@ class _MyFormPageState extends State<MyFormPage> {
     
     void _submitData () {
         
+        DateTime expiration = new DateTime(
+            _datePicker.date.year,
+            _datePicker.date.month,
+            _datePicker.date.day,
+            _timePicker.time.hour,
+            _timePicker.time.minute,
+        );
+        print(expiration);
+        
         TodoData todoData = TodoData(
             name: _nameField.name,
-            expiration: DateTime(
-                _datePicker.date.year,
-                _datePicker.date.month,
-                _datePicker.date.day,
-                _timePicker.time.hour,
-                _timePicker.time.minute,
-            )
+            expiration: expiration,
         );
         print(todoData);
         

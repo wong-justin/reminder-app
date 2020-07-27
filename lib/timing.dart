@@ -11,26 +11,36 @@ class TimerText extends StatefulWidget {
     
     @override
     _TimerTextState createState() => _TimerTextState();
+//    _TimerTextState createState() => _TimerTextState(expiration);
 }
 
 class _TimerTextState extends State<TimerText> {
     
     Timer _timer;    // schedules frequent stopwatch checks
-    Stopwatch _stopwatch = new Stopwatch();   // counts time elapsed
+    Stopwatch _stopwatch;   // counts time elapsed
     
     Duration _initialTimeRemaining;     // final
     Duration _timeRemaining;
     Unit _lastUnit;
     
+//    DateTime _expiration;
+//    
+//    _TimerTextState(expiration,) {
+//        this._expiration = expiration;
+//    }
+    
     @override
     void initState() {     
+//        super.initState();
         
         _initialTimeRemaining = widget.expiration.difference(DateTime.now());
+//        _initialTimeRemaining = _expiration.difference(DateTime.now());
         _timeRemaining = _initialTimeRemaining;
         _lastUnit = UnitAmount.largestUnit(_timeRemaining).units;
         
         int startingRefreshRateMs = _refreshRate(_lastUnit);
             
+        _stopwatch = new Stopwatch();
         _stopwatch.start();
         
         _timer = new Timer.periodic(
@@ -39,6 +49,14 @@ class _TimerTextState extends State<TimerText> {
             ),
             _checkStopwatch
         );
+    }
+    
+    @override
+    void dispose() {
+        _stopwatch.stop();
+        _timer.cancel();
+        
+        super.dispose();
     }
     
     @override
@@ -106,6 +124,7 @@ class _TimerTextState extends State<TimerText> {
     
     String _formattedTimeRemaining() {
 //        return _timeRemaining.inSeconds.toString();
+//        return _initialTimeRemaining.inSeconds.toString();
         return UnitAmount.largestUnit(_timeRemaining).toString();
     }
 }

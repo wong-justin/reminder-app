@@ -4,6 +4,7 @@ import 'package:rxdart/subjects.dart';
 
 import 'dart:async';
 
+import 'notifications.dart';
 import 'todo.dart';
 import 'create.dart';
 
@@ -15,42 +16,6 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
     await initNotificationPlugin();
     runApp(MyApp());
-}
-
-void initNotificationPlugin() async {
-    
-    WidgetsFlutterBinding.ensureInitialized();
-    
-    final BehaviorSubject<String> selectNotificationSubject = 
-        BehaviorSubject<String>();
-    
-    NotificationAppLaunchDetails notificationAppLaunchDetails =
-        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-    
-    var initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');//app_icon');
-    var initSettingsIOS = IOSInitializationSettings(
-        requestAlertPermission: false,
-    );
-        
-    var initSettings = InitializationSettings(
-        initSettingsAndroid,
-        initSettingsIOS
-    );
-        
-    await flutterLocalNotificationsPlugin.initialize(
-        initSettings,
-        onSelectNotification: (String payload) async {
-            if (payload != null) {
-                debugPrint('notification payload: ' + payload);
-            }
-            selectNotificationSubject.add(payload);
-            
-            // listener for when user opens notification:
-//            selectNotificationSubject.stream.listen((String payload) async {
-//                // do something with payload
-//            });
-        }
-    );
 }
 
 class MyApp extends StatelessWidget {
@@ -73,20 +38,21 @@ class MyApp extends StatelessWidget {
                     ),
                 ),
             ),
-            home: RandomWords(),
+            home: HomePage(),
         );
     }
 }
 
-class RandomWords extends StatefulWidget {
+class HomePage extends StatefulWidget {
+
     @override
-    _RandomWordsState createState() => _RandomWordsState();
+    _HomePageState createState() => _HomePageState();
 }
 
-class _RandomWordsState extends State<RandomWords> {
+class _HomePageState extends State<HomePage> {
             
-    final _list1 = initSampleTodos();
-//    final _list2 = initSampleTodos();
+    List<TodoData> _urgentList = initSampleTodos();
+    final _soonList = initSampleTodos();
 //    final _list3 = initSampleTodos();
     
     @override
@@ -98,19 +64,19 @@ class _RandomWordsState extends State<RandomWords> {
                     IconButton(icon: Icon(Icons.search),
                                onPressed: _searchFunction),
                     IconButton(icon: Icon(Icons.more_vert),
-                               onPressed: _pushFavorited),
+                               onPressed: _pushSettingsRoute),
                 ]
             ),
             body: ListView(
                 children: [
-                    _buildHeader('urgent'),
                     Sublist(
-                        list: _list1,
+                        title: 'urgent',
+                        list: _urgentList,
                     ),
-//                    _buildHeader('soon'),
-//                    Sublist(
-//                        list: _list2,
-//                    ),
+                    Sublist(
+                        title: 'soon',
+                        list: _soonList,
+                    ),
 //                    _buildHeader('sometime'),
 //                    Sublist(
 //                        list: _list3,
@@ -131,64 +97,86 @@ class _RandomWordsState extends State<RandomWords> {
         );
     }
     
-    Widget _buildHeader(String titleText) {
-        
-        return Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-                titleText.toUpperCase(),
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.grey[200].withOpacity(0.3),
-                )
-            ),
-        );
-    }
-    
-    void _pushTodoCreationRoute() {
-        var result = Navigator.of(context).push(
+    void _pushTodoCreationRoute() async {
+        var newTodo = await Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => MyFormPage()),
         );
+        
+        if (newTodo == null) {
+            return;
+        }
+        
+        // do something with new TodoData
+        int compareDates(curr, other) {
+            if (curr.expiration.isBefore(other.expiration)) {
+                return -1;
+            }
+            else {
+                return 1;
+            }
+        }
+        DateTime thisDate = newTodo.expiration;
+        if (thisDate.isBefore(DateTime.now())) {
+            // insert into ordered urgent list            
+            insertInto(_urgentList, 
+                       newTodo, 
+                       compareDates);
+            setState(() {});
+        }
+        else {
+            insertInto(_soonList,
+                       newTodo,
+                       compareDates);
+            setState(() {});
+        }
+        
+        
+        // method 3, trying to debug timertext taking on adjacent value from list
+//        setState(() {
+//            _urgentList.insert(3, new TodoData(
+//                name: 'filler',
+//                expiration: DateTime.now(),
+//            ));
+//            _urgentList.insert(4, newTodo);
+//        });
+        
+        // method 4, copying into new list
+//        DateTime thisDate = newTodo.expiration;
+//        List<TodoData> newList = [];
+//        int i = 0;
+//        for (i; i < _urgentList.length; i++) {
+//            TodoData otherTodo = _urgentList[i];
+//            if (thisDate.isBefore(otherTodo.expiration)) {
+//                break;
+//            } else {
+//                newList.add(otherTodo);
+//            }
+//        }
+//        newList.add(newTodo);
+//        i++;
+//        while (i < _urgentList.length) {
+//            newList.add(_urgentList[i]);
+//            i++;
+//        }
+//        _urgentList = newList;
+//        setState(() {});
+        
+
     }
     
-    void _pushFavorited() {
+    void _pushSettingsRoute() {
         Navigator.of(context).push(
             MaterialPageRoute<void>(
                 builder: (BuildContext context) {
-                    
-                    final tiles = (_list1).map(// + _list2 + _list3).map(
-                        (TodoData li) {
-                            return ListTile(
-                                title: _liText(li.name),
-                            );
-                        }
-                    );
-                    
-                    final divided = ListTile.divideTiles(
-                        context: context,
-                        tiles: tiles,
-                    ).toList();
                     
                     return Scaffold(
                         appBar: AppBar(
                             title: Text('Settings'),
                         ),
-                        body: ListView(children: divided),
+                        body: Text('settings here'),
                     );
                 }
             )
-        );
-    }
-    
-    Widget _liText(String title) {
-        return Text(
-            title,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.0,
-            ),
         );
     }
     
@@ -199,9 +187,10 @@ class _RandomWordsState extends State<RandomWords> {
 
 class Sublist extends StatefulWidget {
     
+    final String title;
     final List<TodoData> list;
     
-    Sublist({this.list,});
+    Sublist({this.list, this.title,});
     
      @override
     _SublistState createState() => _SublistState();
@@ -211,15 +200,55 @@ class _SublistState extends State<Sublist> {
         
     @override
     Widget build(BuildContext context) {
-                
+        
+        List<Widget> items = ListTile.divideTiles(
+            context: context,
+            tiles: widget.list.map((TodoData td) {
+                return TodoWidget(
+                    key: UniqueKey(),
+                    todoData: td,
+                );
+            }),
+            color: Theme.of(context).scaffoldBackgroundColor,
+        ).toList();
+        
+        items.insert(0, _buildHeader());        
+        
         return Column(
-            children: ListTile.divideTiles(
-                context: context,
-                tiles: widget.list.map((TodoData td) {
-                    return TodoWidget(td);
-                }),
-                color: Theme.of(context).scaffoldBackgroundColor,
-            ).toList(),
+            children: items,
         );
     }    
+    
+    Widget _buildHeader() {
+        
+        return Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+                children: <Widget>[
+                    Text(
+                        widget.title.toUpperCase(),
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.grey[200].withOpacity(0.3),
+                        )
+                    ),
+                    Spacer(),
+                ],
+            ),
+        );            
+    }    
+}
+
+void insertInto(List list, newItem, compareKey) {
+    int i = 0;
+    for (i; i < list.length; i++) {
+        var otherItem = list[i];
+        int comparison = compareKey(newItem, otherItem);
+        if (comparison < 0) {
+            break;
+        }
+    }
+    list.insert(i, newItem);
 }
