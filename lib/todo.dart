@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'dart:math';
 
 import 'timing.dart';
+import 'notifications.dart';
 
 
 class TodoWidget extends StatefulWidget {
@@ -34,7 +36,11 @@ class _TodoWidgetState extends State<TodoWidget> {
                     widget.todoData.name,
                     style: Theme.of(context).textTheme.body1
                 ),
-//                title: _liText(widget.todoData.name),
+                subtitle: widget.todoData.description == null ?
+                    null: 
+                    Text(
+                        widget.todoData.description,
+                    ),
                 trailing: _timerText,
                 onTap: () {
                     print(widget.todoData);
@@ -53,15 +59,46 @@ class TodoData {
         
     String name;
     String description;
-    bool isRecurring;
-    DateTime expiration;//DateTime.now()
+    DateTime expiration; 
     
-    DateTime _created = DateTime.now();
+    // Ideally repeatInterval is replaced by custom repeat rules [class],
+    //  named something like RecurringRule,
+    //  supporting eg first and last Monday of month;
+    //  would be used with custom recurring notification implementation.
+    // For now, settling for the very limited RepeatInterval enum
+    //  provided by local_notifications_plugin:
+    //  [EveryMinute], Hourly, Daily, Weekly
+    RepeatInterval repeatInterval = null;
+//    bool isRecurring;
+    
+    final DateTime _created = DateTime.now();
+    int id;// = created.hash();
     
     TodoData({this.name, 
               this.description, 
               this.expiration,
-              this.isRecurring,});
+              this.repeatInterval,}) {
+        id = _created.hashCode;
+        
+        if (repeatInterval == null) {
+            scheduleNotification(id,
+                                 name,
+                                 description,
+                                 expiration);          
+        } else {
+            scheduleRecurringNotification(id,
+                                          name,
+                                          description,
+                                          repeatInterval,
+                                          expiration);
+        }
+    }
+    
+    // should be called when someone wants 
+    // to delete this TodoData
+    void dispose() async {
+        cancelNotification(this.id);
+    }    
     
     @override
     String toString() {
@@ -70,18 +107,19 @@ class TodoData {
             'description: ' + description.toString(),
             'created: ' + _created.toString(),
             'expiration: ' + expiration.toString(),
-            'isRecurring: ' + isRecurring.toString(),
+            'repeatInterval: ' + repeatInterval.toString(),
         ].join('\n');
     }
 }
 
-List<TodoData> initSampleTodos() {
-    return generateWordPairs().take(3).toList().map(
+List<TodoData> generateSampleTodos(int n) {
+    return generateWordPairs().take(n).toList().map(
         (WordPair pair) {
             
             int randMinutes = Random().nextInt(180);
             return TodoData(
                 name: pair.asPascalCase,
+                description: 'sample description',
                 expiration: DateTime.now().add(
                     Duration(minutes: randMinutes,)),
             );

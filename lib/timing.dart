@@ -11,7 +11,6 @@ class TimerText extends StatefulWidget {
     
     @override
     _TimerTextState createState() => _TimerTextState();
-//    _TimerTextState createState() => _TimerTextState(expiration);
 }
 
 class _TimerTextState extends State<TimerText> {
@@ -23,18 +22,10 @@ class _TimerTextState extends State<TimerText> {
     Duration _timeRemaining;
     Unit _lastUnit;
     
-//    DateTime _expiration;
-//    
-//    _TimerTextState(expiration,) {
-//        this._expiration = expiration;
-//    }
-    
     @override
     void initState() {     
-//        super.initState();
         
         _initialTimeRemaining = widget.expiration.difference(DateTime.now());
-//        _initialTimeRemaining = _expiration.difference(DateTime.now());
         _timeRemaining = _initialTimeRemaining;
         _lastUnit = UnitAmount.largestUnit(_timeRemaining).units;
         
@@ -72,29 +63,24 @@ class _TimerTextState extends State<TimerText> {
         
         Unit units = UnitAmount.largestUnit(_timeRemaining).units;
         
+        // higher timer frequency for shorter remaining times
         if (units != _lastUnit) {
             int refreshRateMs = _refreshRate(units);
             _replaceTimer(refreshRateMs);
             _lastUnit = units;
         }
-        
-        // lower timer frequency for longer remaining times
-        
-        //        _timer = new Timer.periodic(
-//            new Duration(
-//                milliseconds: TimerText.refreshRateMs
-//            ),
-//            _checkStopwatch
-//        );
-            
+         
         setState(() {});
     }
     
     int _refreshRate(Unit units) {
         int refreshRateMs;
         
-        // assuming weeks is the highest in Unit enum
+        // assuming months is the highest in Unit enum
         switch (units) {
+            case Unit.months:
+                refreshRateMs = 1000 * 60 * 60;
+                break;
             case Unit.weeks:
                 refreshRateMs = 1000 * 60 * 60;
                 break;
@@ -129,7 +115,7 @@ class _TimerTextState extends State<TimerText> {
     }
 }
     
-enum Unit {seconds, minutes, hours, days, weeks}
+enum Unit {seconds, minutes, hours, days, weeks, months}
     
 class UnitAmount {
     
@@ -144,7 +130,11 @@ class UnitAmount {
         
         final int days = d.inDays;
         final int weeks = (days / 7).truncate();
-        if (weeks > 0) {
+        final int months = (days / 30).truncate();
+        if (months > 0) {
+            amount = months;
+            units = Unit.months;
+        } else if (weeks > 0) {
             amount = weeks;
             units = Unit.weeks;
         } else if(days > 0) {

@@ -8,11 +8,6 @@ import 'notifications.dart';
 import 'todo.dart';
 import 'create.dart';
 
-// obj passed whenever handling notification actions
-//  like scheduling, initialization, permissions, etc
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = 
-        FlutterLocalNotificationsPlugin();
-
 void main() async {
     await initNotificationPlugin();
     runApp(MyApp());
@@ -51,9 +46,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
             
-    List<TodoData> _urgentList = initSampleTodos();
-    final _soonList = initSampleTodos();
+    List<TodoData> _urgentList;
+    List<TodoData> _soonList;
 //    final _list3 = initSampleTodos();
+    
+    @override
+    void initState() {
+        _sortTodos(generateSampleTodos(6));
+    }
     
     @override
     Widget build(BuildContext context) {
@@ -82,7 +82,7 @@ class _HomePageState extends State<HomePage> {
 //                        list: _list3,
 //                    ),
                 ],
-                padding: EdgeInsets.only(bottom: 56),   // 40 for mini
+                padding: EdgeInsets.only(bottom: 88),   // 56 normal, 40 for mini
             ),                
             floatingActionButton: InkWell(
                 splashColor: Colors.red,
@@ -106,15 +106,7 @@ class _HomePageState extends State<HomePage> {
             return;
         }
         
-        // do something with new TodoData
-        int compareDates(curr, other) {
-            if (curr.expiration.isBefore(other.expiration)) {
-                return -1;
-            }
-            else {
-                return 1;
-            }
-        }
+        // do something with new TodoData        
         DateTime thisDate = newTodo.expiration;
         if (thisDate.isBefore(DateTime.now())) {
             // insert into ordered urgent list            
@@ -128,40 +120,7 @@ class _HomePageState extends State<HomePage> {
                        newTodo,
                        compareDates);
             setState(() {});
-        }
-        
-        
-        // method 3, trying to debug timertext taking on adjacent value from list
-//        setState(() {
-//            _urgentList.insert(3, new TodoData(
-//                name: 'filler',
-//                expiration: DateTime.now(),
-//            ));
-//            _urgentList.insert(4, newTodo);
-//        });
-        
-        // method 4, copying into new list
-//        DateTime thisDate = newTodo.expiration;
-//        List<TodoData> newList = [];
-//        int i = 0;
-//        for (i; i < _urgentList.length; i++) {
-//            TodoData otherTodo = _urgentList[i];
-//            if (thisDate.isBefore(otherTodo.expiration)) {
-//                break;
-//            } else {
-//                newList.add(otherTodo);
-//            }
-//        }
-//        newList.add(newTodo);
-//        i++;
-//        while (i < _urgentList.length) {
-//            newList.add(_urgentList[i]);
-//            i++;
-//        }
-//        _urgentList = newList;
-//        setState(() {});
-        
-
+        } 
     }
     
     void _pushSettingsRoute() {
@@ -183,6 +142,27 @@ class _HomePageState extends State<HomePage> {
     void _searchFunction() {
         
     }
+    
+    void _sortTodos(List<TodoData> allTodos,) {
+        // separate into expired (urgent) and time remaining (soon)
+        //  and assign to private vars in state
+        allTodos.sort((a, b) => compareDates(a, b));
+        int i = 0;
+        DateTime now = DateTime.now();
+        while (i < allTodos.length) {
+            if (allTodos[i].expiration.isBefore(now)) {
+                i++;
+            } else {
+                break;
+            }
+        }
+        print(i);
+        
+        _urgentList = allTodos.sublist(0, i);
+        _soonList = allTodos.sublist(i, allTodos.length);
+    }
+    
+
 }
 
 class Sublist extends StatefulWidget {
@@ -199,28 +179,13 @@ class Sublist extends StatefulWidget {
 class _SublistState extends State<Sublist> {
         
     @override
-    Widget build(BuildContext context) {
-        
-        List<Widget> items = ListTile.divideTiles(
-            context: context,
-            tiles: widget.list.map((TodoData td) {
-                return TodoWidget(
-                    key: UniqueKey(),
-                    todoData: td,
-                );
-            }),
-            color: Theme.of(context).scaffoldBackgroundColor,
-        ).toList();
-        
-        items.insert(0, _buildHeader());        
-        
+    Widget build(BuildContext context) {       
         return Column(
-            children: items,
+            children: [_buildHeader(), ..._buildListChildren()],
         );
     }    
     
     Widget _buildHeader() {
-        
         return Padding(
             padding: EdgeInsets.all(12),
             child: Row(
@@ -239,6 +204,23 @@ class _SublistState extends State<Sublist> {
             ),
         );            
     }    
+    
+    List<Widget> _buildListChildren() {
+        if (widget.list == null ||
+            widget.list.length == 0) {
+            return <Widget>[];
+        }
+        return ListTile.divideTiles(
+            context: context,
+            tiles: widget.list.map((TodoData td) {
+                return TodoWidget(
+                    key: UniqueKey(),
+                    todoData: td,
+                );
+            }),
+            color: Theme.of(context).scaffoldBackgroundColor,
+        ).toList();
+    }
 }
 
 void insertInto(List list, newItem, compareKey) {
@@ -251,4 +233,13 @@ void insertInto(List list, newItem, compareKey) {
         }
     }
     list.insert(i, newItem);
+}
+
+int compareDates(TodoData curr, TodoData other) {
+    if (curr.expiration.isBefore(other.expiration)) {
+        return -1;
+    }
+    else {
+        return 1;
+    }
 }
